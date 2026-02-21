@@ -1,0 +1,1 @@
+This was an attempt to fix latency issues by doing the division in the actual circuit using a 4017 decade counter.  In the end, I never got this to work to my satisfaction.  The code is half finished and should be updated if I rebuild this circuit.

@@ -111,18 +111,28 @@ void loop() {
         // Toggle clock mode
         if (currentMode == EXTERNAL) {
           currentMode = INTERNAL;
+          
+          // Detach external clock interrupt when switching to internal mode
+          detachInterrupt(digitalPinToInterrupt(clockInputPin));
+          
           if (DEBUG) {
             Serial.println("\n****************************************");
             Serial.println("   SWITCHED TO INTERNAL CLOCK MODE");
             Serial.println("   A0 pot now controls BPM (60-240)");
+            Serial.println("   External clock interrupt detached");
             Serial.println("****************************************\n");
           }
         } else {
           currentMode = EXTERNAL;
+          
+          // Re-attach external clock interrupt when switching back to external mode
+          attachInterrupt(digitalPinToInterrupt(clockInputPin), isrClock, RISING);
+          
           if (DEBUG) {
             Serial.println("\n****************************************");
             Serial.println("   SWITCHED TO EXTERNAL CLOCK MODE");
             Serial.println("   A0 pot controls input time signature");
+            Serial.println("   External clock interrupt attached");
             Serial.println("   Waiting for external clock...");
             Serial.println("****************************************\n");
           }
@@ -167,6 +177,7 @@ void loop() {
         lastBPM = 0.0;
         previousClock = 0;
         lastInternalClock = 0;
+        isrClockCount = 0;
         waitingForClockInput = true;
         
         // Reset all output states
@@ -246,7 +257,9 @@ void loop() {
       }
       
       // Only update stable timing if change exceeds threshold or first calculation
-      if (stableClockPeriod == 0 || abs(currentBPM - lastBPM) >= bpmChangeThreshold) {
+      float bpmDelta = fabs(currentBPM - lastBPM);  // Calculate delta before updating
+      
+      if (stableClockPeriod == 0 || bpmDelta >= bpmChangeThreshold) {
         stableClockPeriod = avgPeriod;
         lastBPM = currentBPM;
         
@@ -257,12 +270,12 @@ void loop() {
           Serial.print(" us, Stable BPM: ");
           Serial.print(currentBPM, 2);
           Serial.print(" (Change: ");
-          Serial.print(abs(currentBPM - lastBPM), 2);
+          Serial.print(bpmDelta, 2);
           Serial.println(" BPM)");
         }
       } else if (DEBUG) {
         Serial.print("Timing stable (change: ");
-        Serial.print(abs(currentBPM - lastBPM), 2);
+        Serial.print(bpmDelta, 2);
         Serial.print(" BPM < threshold: ");
         Serial.print(bpmChangeThreshold, 2);
         Serial.println(" BPM)");
@@ -320,7 +333,7 @@ void loop() {
       Serial.print(timeSignature[i]);
       if (i < 3) Serial.print(", ");
     }
-    Serial.println("]);
+    Serial.println("]");
     Serial.println("==========================\n");
   }
 }

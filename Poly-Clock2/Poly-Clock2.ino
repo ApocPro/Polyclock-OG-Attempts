@@ -138,13 +138,28 @@ void loop() {
           }
         }
         
-        // Flash output 4 LED to indicate mode change
-        for (int i=0; i<3; i++) {
-          digitalWrite(clockOutput[3], HIGH);
-          delay(100);
-          digitalWrite(clockOutput[3], LOW);
-          delay(100);
+        // Clear timing state when switching modes to prevent stale data
+        for (int i=0; i<queueSize; i++){
+          clockQueue[i] = 0;
         }
+        currentStep = 0;
+        queueReady = 0;
+        stableClockPeriod = 0;
+        lastBPM = 0.0;
+        previousClock = 0;
+        lastInternalClock = 0;
+        isrClockCount = 0;
+        waitingForClockInput = true;
+        
+        // Reset all output states
+        for (int i=0; i<4; i++){
+          digitalWrite(clockOutput[i], LOW);
+        }
+        
+        // Quick non-blocking pulse on output 4 to indicate mode change
+        digitalWrite(clockOutput[3], HIGH);
+        delayMicroseconds(50000);  // 50ms pulse - short enough to not disrupt timing
+        digitalWrite(clockOutput[3], LOW);
       }
     } else {
       // Button released - check if it was a short press (normal reset)
